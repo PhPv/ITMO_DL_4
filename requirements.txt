@@ -1,0 +1,10 @@
+numpy
+matplotlib
+pandas
+math
+time
+sklearn
+datetime
+keras
+pandas_datareader
+re
