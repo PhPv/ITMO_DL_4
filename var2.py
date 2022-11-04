@@ -17,41 +17,41 @@ from numpy import isnan
 from pandas import read_csv
 from pandas import to_numeric
 
-# fill missing values with a value at the same time one day ago
-def fill_missing(values):
-	one_day = 60 * 24
-	for row in range(values.shape[0]):
-		for col in range(values.shape[1]):
-			if isnan(values[row, col]):
-				values[row, col] = values[row - one_day, col]
+# # fill missing values with a value at the same time one day ago
+# def fill_missing(values):
+# 	one_day = 60 * 24
+# 	for row in range(values.shape[0]):
+# 		for col in range(values.shape[1]):
+# 			if isnan(values[row, col]):
+# 				values[row, col] = values[row - one_day, col]
 
-# load all data
-dataset = read_csv('household_power_consumption.txt', sep=';', header=0, low_memory=False, infer_datetime_format=True, parse_dates={'datetime':[0,1]}, index_col=['datetime'])
-# mark all missing values
-dataset.replace('?', nan, inplace=True)
-# make dataset numeric
-dataset = dataset.astype('float32')
-# fill missing
-fill_missing(dataset.values)
-# add a column for for the remainder of sub metering
-values = dataset.values
-dataset['sub_metering_4'] = (values[:,0] * 1000 / 60) - (values[:,4] + values[:,5] + values[:,6])
-# save updated dataset
-dataset.to_csv('household_power_consumption.csv')
+# # load all data
+# dataset = read_csv('household_power_consumption.txt', sep=';', header=0, low_memory=False, infer_datetime_format=True, parse_dates={'datetime':[0,1]}, index_col=['datetime'])
+# # mark all missing values
+# dataset.replace('?', nan, inplace=True)
+# # make dataset numeric
+# dataset = dataset.astype('float32')
+# # fill missing
+# fill_missing(dataset.values)
+# # add a column for for the remainder of sub metering
+# values = dataset.values
+# dataset['sub_metering_4'] = (values[:,0] * 1000 / 60) - (values[:,4] + values[:,5] + values[:,6])
+# # save updated dataset
+# dataset.to_csv('household_power_consumption.csv')
 
 
-# resample minute data to total for each day
-from pandas import read_csv
-# load the new file
-dataset = read_csv('household_power_consumption.csv', header=0, infer_datetime_format=True, parse_dates=['datetime'], index_col=['datetime'])
-# resample data to daily
-daily_groups = dataset.resample('D')
-daily_data = daily_groups.sum()
-# summarize
-print(daily_data.shape)
-print(daily_data.head())
-# save
-daily_data.to_csv('household_power_consumption_days.csv')
+# # resample minute data to total for each day
+# from pandas import read_csv
+# # load the new file
+# dataset = read_csv('household_power_consumption.csv', header=0, infer_datetime_format=True, parse_dates=['datetime'], index_col=['datetime'])
+# # resample data to daily
+# daily_groups = dataset.resample('D')
+# daily_data = daily_groups.sum()
+# # summarize
+# print(daily_data.shape)
+# print(daily_data.head())
+# # save
+# daily_data.to_csv('household_power_consumption_days.csv')
 
 
 # univariate multi-step lstm
@@ -69,10 +69,10 @@ from keras.layers import LSTM
 # split a univariate dataset into train/test sets
 def split_dataset(data):
     # split into standard weeks
-    train, test = data[1:-328], data[-328:-6]
+    train, test = data[1:-30*24+1], data[-30*24:-48]
     # restructure into windows of weekly data
-    train = array(split(train, len(train)/7))
-    test = array(split(test, len(test)/7))
+    train = array(split(train, len(train)/24))
+    test = array(split(test, len(test)/24))
     return train, test
 
 def show_plot(true, pred, title):
@@ -114,7 +114,7 @@ def summarize_scores(name, score, scores):
     print('%s: [%.3f] %s' % (name, score, s_scores))
 
 # convert history into inputs and outputs
-def to_supervised(train, n_input, n_out=7):
+def to_supervised(train, n_input, n_out=24):
     # flatten data
     data = train.reshape((train.shape[0]*train.shape[1], train.shape[2]))
     X, y = list(), list()
@@ -186,14 +186,69 @@ def evaluate_model(train, test, n_input):
     score, scores = evaluate_forecasts(test[:, :, 0], predictions)
     return score, scores
 
+import pandas as pd
+import re
+
+# импорт данных
+data_x = pd.read_csv('Station_1_weather_clear_06_06.csv', sep=';')
+data_y = pd.read_csv('fact_year_original.csv', sep=',', index_col=0)
+
+# удаление дупликатов по параметру дататайм, с оставлением последнего (второго) экземпляра
+data_x = data_x.drop_duplicates(subset=['dt'], keep = 'last')
+
+# преобразование даты и времени в тип данных дататайм64
+data_x.loc[:,'dt'] = pd.to_datetime(data_x['dt'])
+data_y.loc[:,'dt'] = pd.to_datetime(data_y['dt'])
+
+# слияние матрицы признаков и матрицы целевых переменных
+data = pd.merge(data_y, data_x, on='dt')
+print(data.head())
+# срез изключающий из выборки последние 10 дней для анализа
+#data = pd.merge(data_y, data_x, on='dt').iloc[:-240]
+
+# создание доп матрицы признаков из дататайм
+dayofyear = data['dt'].dt.dayofyear
+hours = data['dt'].dt.hour
+month = data['dt'].dt.month
+days_hours = pd.concat([dayofyear, hours, month], axis=1, join='inner', keys=['dayofyear', 'hours', 'month'])
+print(days_hours.head())
+
+# удаление явно ненужных столбцов из матрицы признаков
+data = data.drop(['id', 'gtpp', 'load_time', 'predict'], axis=1)
+data = pd.concat([data, days_hours], axis=1)
+data = data.drop(data[data['fact'].values <= 10].index)
+# зимой станцию заметает снегом. 
+
+data = data.drop(['month'], axis=1)
+
+# очистка данных от лишних символов (не нужно) 
+data.replace('[^a-zA-Z0-9]', ' ', regex = True)
+data = data.rename(columns = lambda x:re.sub('[^A-Za-z0-9_]+:[C]:', '', x))
+
+# # выделение матриц признаков и целевых переменных (целевая переменная 'fact')
+# y_train = data[data.columns[0]]
+# X_train = data[data.columns[1:]]
+
+# # формирование набора для обучения и тестирования
+# X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, test_size=0.01, random_state=42)
+
+
 # load the new file
-dataset = read_csv('household_power_consumption_days.csv', header=0,
-                    infer_datetime_format=True, parse_dates=['datetime'],
-                    index_col=['datetime'])
+# dataset = read_csv('household_power_consumption_days.csv', header=0,
+#                     infer_datetime_format=True, parse_dates=['datetime'],
+#                     index_col=['datetime'])
 # split into train and test
+
+data.drop(df.tail(20).index,inplace=True) 
+data.to_csv('data.csv')
+
+dataset = read_csv('data.csv', header=0,
+                     infer_datetime_format=True, parse_dates=['dt'],
+                     index_col=['dt'])
+
 train, test = split_dataset(dataset.values)
 # evaluate model and get scores
-n_input = 7
+n_input = 24
 score, scores = evaluate_model(train, test, n_input)
 # summarize scores
 summarize_scores('lstm', score, scores)
