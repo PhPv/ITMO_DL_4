@@ -239,7 +239,7 @@ data = data.rename(columns = lambda x:re.sub('[^A-Za-z0-9_]+:[C]:', '', x))
 #                     index_col=['datetime'])
 # split into train and test
 
-data.drop(df.tail(20).index,inplace=True) 
+data.drop(data.tail(19).index,inplace=True) 
 data.to_csv('data.csv')
 
 dataset = read_csv('data.csv', header=0,
