@@ -8,3 +8,4 @@ datetime
 keras
 pandas_datareader
 re
+pickle
