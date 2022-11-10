@@ -27,6 +27,7 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import Flatten
 from keras.layers import LSTM
+import numpy as np
 
 import pandas as pd
 import re
@@ -38,7 +39,7 @@ dataset = read_csv('data_full.csv', header=0,
 # split a univariate dataset into train/test sets
 def split_dataset(data):
     # split into standard weeks
-    train, test = data[0:len(data)-30*24], data[len(data)-30*24:]
+    train, test = data[0:len(data)-30*24], data[len(data)-2*24:]
     # restructure into windows of weekly data
     train = array(split(train, len(train)/24))
     test = array(split(test, len(test)/24))
@@ -55,15 +56,16 @@ print(test[0, 12, 0], test[-1, -1, 0])
 # print(train, test)
 
 def show_plot(true, pred, title):
-    fig = pyplot.subplots()
-    pyplot.plot(true, label='Y_original')
-    pyplot.plot(pred, dashes=[4, 3], label='Y_predicted')
-    pyplot.xlabel('N_samples', fontsize=12)
-    pyplot.ylabel('Instance_value', fontsize=12)
-    pyplot.title(title, fontsize=12)
-    pyplot.grid(True)
-    pyplot.legend(loc='upper right')
-    pyplot.show()
+    # fig = pyplot.subplots()
+    # pyplot.plot(true, label='Y_original')
+    # pyplot.plot(pred, dashes=[4, 3], label='Y_predicted')
+    # pyplot.xlabel('N_samples', fontsize=12)
+    # pyplot.ylabel('Instance_value', fontsize=12)
+    # pyplot.title(title, fontsize=12)
+    # pyplot.grid(True)
+    # pyplot.legend(loc='upper right')
+    # pyplot.show()
+    pass
 
 # # evaluate one or more weekly forecasts against expected values
 def evaluate_forecasts(actual, predicted):
@@ -82,10 +84,30 @@ def evaluate_forecasts(actual, predicted):
         for col in range(actual.shape[1]):
             s += (actual[row, col] - predicted[row, col])**2
     score = sqrt(s / (actual.shape[0] * actual.shape[1]))
+    print(len(predicted))
+    print(len(predicted[0]))
+    print(len(predicted[1]))
+    
     # plot forecasts vs observations
-    for j in range(predicted.shape[1]):
-        show_plot(actual[:, j], predicted[:, j], j + 1)
+    # for j in range(predicted.shape[1]):
+    #     show_plot(actual[:, j], predicted[:, j], j + 1)
+    for i in range(len(predicted)):
+        plot_2(actual[i], predicted[i])
     return score, scores
+
+def plot_2(y_test, y_pred):
+    difference = (y_pred - y_test)/y_test
+    fig, ax1 = pyplot.subplots(figsize=(7,4))
+    ax2 = ax1.twinx()
+    ax1.bar(np.arange(0, len(y_test)), y_test, label = 'Real Power')
+    ax1.bar(np.arange(0, len(y_test)), y_pred, alpha = 0.7, label = 'Predicted Power')
+    ax2.plot(np.arange(0, len(y_test)), difference, label = 'dif', alpha = 0.99, color="red")
+    ax1.legend(loc='upper left', fontsize=10)
+    ax1.set_title('Difference')
+    ax1.set_ylabel('power_value')
+    fig.autofmt_xdate(rotation=45)
+
+    pyplot.show()
 
 # summarize scores
 def summarize_scores(name, score, scores):
@@ -168,6 +190,7 @@ def evaluate_model(train, test, n_input, model):
     predictions = array(predictions)
     score, scores = evaluate_forecasts(test[:, :, 0], predictions)
     return score, scores
+
 
 train, test = split_dataset(dataset.values)
 # evaluate model and get scores
