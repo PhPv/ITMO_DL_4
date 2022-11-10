@@ -9,6 +9,7 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import Flatten
 from keras.layers import LSTM
+from keras.models import load_model
 from numpy import nan
 from numpy import isnan
 from pandas import read_csv
@@ -127,8 +128,8 @@ def build_model(train, n_input):
     model.compile(loss='mse', optimizer='adam')
 
     # fit network
-    model.fit(train_x, train_y, epochs=epochs, batch_size=batch_size, verbose=verbose)
-    pickle.dump(model, open(f'NN_model_wo_args.sav', 'wb'))
+    # model.fit(train_x, train_y, epochs=epochs, batch_size=batch_size, verbose=verbose)
+    # model.save('NN_model_new')
     return model
 
 
@@ -173,6 +174,7 @@ train, test = split_dataset(dataset.values)
 n_input = 24
 model = build_model(train, n_input)
 pred = []
+model = load_model('NN_model_new')
 
 def evaluate_model(train, test, n_input, model):
     # fit model

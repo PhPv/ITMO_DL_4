@@ -1,6 +1,8 @@
 import pandas as pd
-import datetime
+from datetime import timedelta
 import numpy as np
+
+
 # Function to insert row in the dataframe
 def Insert_row(row_number, df, row_value):
     # Starting value of upper half
@@ -40,7 +42,6 @@ def Insert_row(row_number, df, row_value):
     return df
    
 
-from datetime import timedelta
 # добавляет в датафрейм строки с пропущенным часом и np.nan в признаках для дальнейшего заполнениях
 data_x = pd.read_csv('data.csv', sep=',')#, index_col=['dt'])
 data_x.loc[:,"dt"] = pd.to_datetime(data_x["dt"])
@@ -54,9 +55,8 @@ for n in range(1, len(data_x)):
         data_x = Insert_row(row_number, data_x, row_value)
         count += 1
 
-
-        
-
+    
+# Заполнение NaN
 # data_x = pd.to_datetime(data_x['dt'])
 list = ['fact','10_metre_V_wind_component','Snow_density' ,'Snowfall','Visibility','Surface_pressure','Convective_precipitation',
 'Visual_cloud_cover','Total_cloud_cover','Precipitation_type','Instantaneous_10_metre_wind_gust','Medium_cloud_cover',
@@ -71,6 +71,8 @@ for x in list:
 
 # data_x.to_csv("updated_data_full.csv", index=False)
 # data_x = pd.read_csv('updated_data_full.csv', sep=',')
+
+# создаем и заполняем список со строками, подлежащими удалению
 del_rows = []
 for n in range(2, len(data_x)):
     if data_x['dt'][n].hour !=  data_x['dt'][n-1].hour + 1 and data_x['dt'][n-1].hour != 23 and data_x['dt'][n] != 0:
@@ -80,30 +82,6 @@ for n in range(2, len(data_x)):
             p-=1
 
 #TODO: 12 часовые обрезки есть. 
-
-
-
-# data_y = data_x
-# for n in range(2, len(data_x)):
-#     try:
-#         if data_x['dt'][n].hour !=  data_x['dt'][n-1].hour + 1 and data_x['dt'][n-1].hour != 23:
-#             p = n - 1
-#             print(data_x['dt'][p-1])
-#             while data_x['dt'][p].hour != 23:
-#                 data_y.drop(index=(data_x['dt'][p-1]))
-#                 p-=1
-#                 print('dropped')
-            # m, l = n, 1
-            # while data_x['dt'][m-1].hour != 0:
-            #     l+=1
-            #     m-=1
-            # try:
-            #     data_x = data_x.drop(data_x.index[range(n-l,n)])
-            #     print("deleted ", l, ' ', n)
-            # except:
-            #     continue
-    # except:
-    #     print(n)
-# data_y = data_x[data_x.dt.isin(del_rows) == False]
+# исключаем строки из датафрейма
 data_y = data_x.loc[~data_x['dt'].isin(del_rows)]  
 data_y.to_csv("updated_data_full_dropped.csv", index=False)
