@@ -46,14 +46,18 @@ def Insert_row(row_number, df, row_value):
 data_x = pd.read_csv('data.csv', sep=',')#, index_col=['dt'])
 data_x.loc[:,"dt"] = pd.to_datetime(data_x["dt"])
 count = 0
-for n in range(1, len(data_x)):
-    if data_x['dt'][n-1].hour == 10 and data_x['dt'][n].hour == 12:
-        row_number = n
-        row_value = [np.nan, (data_x['dt'][n-1]) + timedelta(hours=1),
-        np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, 
-        np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan,np.nan, data_x['dt'][n].dayofyear, ((data_x['dt'][n-1]) + timedelta(hours=1)).hour]
-        data_x = Insert_row(row_number, data_x, row_value)
-        count += 1
+l = len(data_x)
+try:
+    for n in range(1, l+500):
+        if data_x['dt'][n-1].hour == 10 and data_x['dt'][n].hour == 12:
+            row_number = n
+            row_value = [np.nan, (data_x['dt'][n-1]) + timedelta(hours=1),
+            np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, 
+            np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan,np.nan, data_x['dt'][n].dayofyear, ((data_x['dt'][n-1]) + timedelta(hours=1)).hour]
+            data_x = Insert_row(row_number, data_x, row_value)
+            count += 1
+except KeyError:
+    print(f"IndexError because l={l} and new_l = {len(data_x)}")
 
     
 # Заполнение NaN
@@ -69,7 +73,7 @@ for x in list:
     # data_x[x] = data_x[x].fillna(data_x[x].median())
     data_x[x] = data_x[x].fillna(method='ffill')
 
-# data_x.to_csv("updated_data_full.csv", index=False)
+data_x.to_csv("updated_data_full.csv", index=False)
 # data_x = pd.read_csv('updated_data_full.csv', sep=',')
 
 # создаем и заполняем список со строками, подлежащими удалению
@@ -85,7 +89,11 @@ for n in range(2, len(data_x)):
         while data_x['dt'][p].hour != 0:
             del_rows.append(data_x['dt'][p])  
             p+=1
-
+    if (data_x['dt'][n].hour !=  data_x['dt'][n-1].hour + 1 and data_x['dt'][n-1].hour != 23):
+        p = n - 1
+        while data_x['dt'][p].hour != 23:
+            del_rows.append(data_x['dt'][p])  
+            p-=1
 #TODO: 12 часовые обрезки есть. 
 # исключаем строки из датафрейма
 data_y = data_x.loc[~data_x['dt'].isin(del_rows)]  

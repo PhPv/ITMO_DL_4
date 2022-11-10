@@ -39,7 +39,8 @@ dataset = read_csv('data_full.csv', header=0,
 # split a univariate dataset into train/test sets
 def split_dataset(data):
     # split into standard weeks
-    train, test = data[0:len(data)-30*24], data[len(data)-2*24:]
+    train, test = data[0:len(data)-30*24], data[len(data)-30*24:]
+    print(test[0])
     # restructure into windows of weekly data
     train = array(split(train, len(train)/24))
     test = array(split(test, len(test)/24))
@@ -84,9 +85,6 @@ def evaluate_forecasts(actual, predicted):
         for col in range(actual.shape[1]):
             s += (actual[row, col] - predicted[row, col])**2
     score = sqrt(s / (actual.shape[0] * actual.shape[1]))
-    print(len(predicted))
-    print(len(predicted[0]))
-    print(len(predicted[1]))
     
     # plot forecasts vs observations
     # for j in range(predicted.shape[1]):
@@ -191,8 +189,9 @@ def evaluate_model(train, test, n_input, model):
     score, scores = evaluate_forecasts(test[:, :, 0], predictions)
     return score, scores
 
-
+print(dataset[len(dataset)-10*24:])
 train, test = split_dataset(dataset.values)
+
 # evaluate model and get scores
 n_input = 24
 model = build_model(train, n_input)
