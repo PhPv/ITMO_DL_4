@@ -75,13 +75,18 @@ for x in list:
 # создаем и заполняем список со строками, подлежащими удалению
 del_rows = []
 for n in range(2, len(data_x)):
-    if data_x['dt'][n].hour !=  data_x['dt'][n-1].hour + 1 and data_x['dt'][n-1].hour != 23 and data_x['dt'][n] != 0:
+    if (data_x['dt'][n].hour !=  data_x['dt'][n-1].hour + 1 and data_x['dt'][n-1].hour != 23 and data_x['dt'][n] != 0):
         p = n - 1
         while data_x['dt'][p].hour != 23:
             del_rows.append(data_x['dt'][p])  
             p-=1
+    if (data_x['dt'][n-1].hour == 23 and data_x['dt'][n] != 0):
+        p = n
+        while data_x['dt'][p].hour != 0:
+            del_rows.append(data_x['dt'][p])  
+            p+=1
 
 #TODO: 12 часовые обрезки есть. 
 # исключаем строки из датафрейма
 data_y = data_x.loc[~data_x['dt'].isin(del_rows)]  
-data_y.to_csv("updated_data_full_dropped.csv", index=False)
+data_y.to_csv("data_full.csv", index=False)

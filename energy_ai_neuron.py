@@ -31,14 +31,14 @@ from keras.layers import LSTM
 import pandas as pd
 import re
 
-dataset = read_csv('updated_data_full_dropped.csv', header=0,
+dataset = read_csv('data_full.csv', header=0,
                      infer_datetime_format=True, parse_dates=['dt'],
                      index_col=['dt'])
 
 # split a univariate dataset into train/test sets
 def split_dataset(data):
     # split into standard weeks
-    train, test = data[0:len(data)-7*24], data[len(data)-7*24:]
+    train, test = data[0:len(data)-30*24], data[len(data)-30*24:]
     # restructure into windows of weekly data
     train = array(split(train, len(train)/24))
     test = array(split(test, len(test)/24))
@@ -173,8 +173,9 @@ train, test = split_dataset(dataset.values)
 # evaluate model and get scores
 n_input = 24
 model = build_model(train, n_input)
+
 pred = []
-model = load_model('NN_model_new')
+model = load_model('NN_model.sav')
 
 def evaluate_model(train, test, n_input, model):
     # fit model
@@ -195,7 +196,7 @@ def evaluate_model(train, test, n_input, model):
     pred = predictions
    
     score, scores = evaluate_forecasts(test[:, :, 0], predictions)
-    print(pred)
+    # print(pred)
     return score, scores
 
 
@@ -216,8 +217,8 @@ summarize_scores('lstm', score, scores)
 hours = [n for n in range(1,25)]
 fig = pyplot.subplots()
 # pyplot.plot(hours, scores, marker='o', label='lstm')
-print(pred)
-print(test[0])
+# print(pred)
+# print(test[0])
 
 pyplot.plot(test[-1], label='Y_original')
 pyplot.plot(pred[-1], dashes=[4, 3], label='Y_predicted')
